@@ -9,12 +9,13 @@ function proximal_subgradient(f:: Function, ∂f:: Function, Lₖ:: Function, x�
     
     while !(solved || k>=k_max)
         ∂fx=∂f(x)
+        println(∂fx[1:3])
         fx=f(x)
         L, x=Lₖ(L, k, x, fx, ∂fx) #Backtracking mais atualização
         
         solved=(norm(∂fx, p)<ϵ)
         k+=1
-        print(k)
+        println(k)
     end 
 
     return x

@@ -1,11 +1,7 @@
 using StatsBase
-using FFTW
-using LinearAlgebra
-using Plots
-include("../tests/tests_utils.jl")
-include("../src/data_utils.jl")
 include("../src/proximal_subgradient_method.jl")
 include("../plots/plots_util.jl")
+include("data_treatment.jl") # Do this include the other way around, if you think is better
 
 function get_s(methods:: Vector{Symbol}, iDFT:: Array{<:Number}, interferogram:: Vector{<:Number}; λ=1.0)
     # Your method here
@@ -19,44 +15,13 @@ function get_s(methods:: Vector{Symbol}, iDFT:: Array{<:Number}, interferogram::
     return spectrum
 end
 
-function get_spectogram_from_sample(methods:: Vector{Symbol}, interferogram:: Vector{<:Number}, percent:: Number; λ=1.0)
-    n                = length(interferogram)
-    sampleₙ, interferogramₙ, iDFTₙ = get_normally_dist_data([i for i=1:n], interferogram, n)
-
-    # m sub-samples
-    rows_id        = sample(1:n, round(Int, percent*n))
-    sampleₘ        = sampleₙ[rows_id]
-    interferogramₘ = interferogramₙ[rows_id]
-    iDFTₘ          = iDFTₙ[rows_id, :]
-
-    return [sampleₘ, interferogramₘ, iDFTₘ, get_s(methods, iDFTₘ, interferogramₘ; λ=λ)]
-end
-
-nist_csv_file_re = "63148-62-9-IR_Re_Silicone oil.csv"
-df_nist_data_re  = CSV.read("data/nist_data/" * nist_csv_file_re, DataFrame)
-nist_csv_file_im = "63148-62-9-IR_Im_Silicone oil.csv"
-df_nist_data_im  = CSV.read("data/nist_data/" * nist_csv_file_im, DataFrame)
-frequency_range  = df_nist_data_re[:, :x]
-spectrum_real    = df_nist_data_re[:, :y]
-spectrum_imag    = df_nist_data_im[:, :y]
-
-interferogram_imag = ifft(spectrum_imag)
-
-# If you want to try the full signal... 
-#spectrum_full = spectrum_real+im*spectrum_imag
-#interferogram_full = ifft(spectrum_full)
-#get_spectogram_from_sample(methods, interferogram_full, percent)
-
-p₁=plot(frequency_range, real.(fft(interferogram_imag)), label="Data")
-plot!(frequency_range, spectrum_imag, label="Reconstructed from double FFT")
-plot!(title="Interferogram of silicone")
-display(p₁)
-
 methods=[:proximal_gradient_method]
-percent=0.5
-λ=1.0
+λ=1
 
-sampleₘ, interferogramₘ, iDFTₘ, spectrumₘ=get_spectogram_from_sample(methods, interferogram_imag, percent; λ=λ)
+# This is where you would use your method(s) to get the spectrum from m samples
+# I suggest one of you to modify get_s the way you want (to run multiple tests or not, how to output the spectrum(s), etc)
+#spectrumₘ=get_s(methods, iDFTₘ, interferogramₘ; λ=λ)
 
-p₂, p₃ = plot_all(frequency_range, spectrumₘ, spectrum_imag, sampleₘ, [i for i=1:length(interferogram_imag)], iDFTₘ, real.(interferogram_imag))
-plot(p₂, p₃)
+# This is how you would compare both spectrums and interferograms, given the spectrumₘ
+# p₂, p₃ = plot_all(frequency_range, spectrumₘ, spectrum, sampleₘ, [i for i=1:n], iDFTₘ, real.(interferogram))
+# plot(p₂, p₃)

@@ -34,8 +34,10 @@ T(ωx:: Vector{<:Number}, s:: Int64)=partialsortperm(ωx, 1:s, rev=true)
 
 function proxhL(L:: Number, x:: Vector{<:Number}, m:: Int64, s:: Int64, λ:: Number; T=T, ω=ω)
     ωx=ω(x)
+    println(ωx[1:3])
     Tωx=T(ωx, s)
 
+    println(searchsortedlast(ωx[Tωx], 2*λ/L, rev=true, lt=<=))
     return UATPBTAT(x, Tωx[1:searchsortedlast(ωx[Tωx], 2*λ/L, rev=true, lt=<=)], m)
 end
 
