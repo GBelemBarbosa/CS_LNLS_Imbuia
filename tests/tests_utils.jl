@@ -1,14 +1,23 @@
 using FFTW
 using LinearAlgebra
 
- function iDFTx(x:: Vector{<:Number}, n:: Int64)
+function iDFTt(t:: Vector{<:Number}, range:: Tuple{<:Number, <:Number}, n:: Int64)
+    # t for the construction must ∈ [0, n-1]
+    # but even as t ∈ range, t[begin] and t[end] might not be range[1] and range[2]
+    t=Float64.(t)
+    t.-=range[1]
+    t.*=(n-1)/(range[2]-range[1])
+
+    # if n even, create a new space for the 0 frequency
     if iseven(n)
         n+=1
     end
     n₂=round(Int, n/2)+1
-    IDFT=zeros(Complex, length(x), n)
+    m=length(t)
+
+    IDFT=zeros(Complex, m, n)
     IDFT[:, n₂].=1.0
-    IDFT[:, n₂+1]=exp.((2*π*im/n).*x)
+    IDFT[:, n₂+1]=exp.((2*π*im/n).*t)
     
     for i=n₂+2:n
         IDFT[:, i]=IDFT[:, i-1].*IDFT[:, n₂+1]
@@ -18,12 +27,12 @@ using LinearAlgebra
     return IDFT./n
 end
 
-function get_normally_dist_data(range:: Tuple{<:Number, <:Number}, interferogram_f:: Function, n:: Int64; iDFTx=iDFTx, pl=true)
+function get_normally_dist_data(range:: Tuple{<:Number, <:Number}, interferogram_f:: Function, n:: Int64; iDFTt=iDFTt, pl=true)
     # n random samples randomly distributed
     sample        = rand(range, n)
     sample.sort()
     interferogram = interferogram_f.(sample) 
-    iDFT          = iDFTx(sample, n)
+    iDFT          = iDFTt(sample, range, n)
 
     if pl
         scatter(sample,  real.(interferogram), lw =2, alpha = .5, label="Real part")
@@ -34,28 +43,13 @@ function get_normally_dist_data(range:: Tuple{<:Number, <:Number}, interferogram
     return sample, interferogram, iDFT
 end
 
-function get_m_samples(interferogram:: Vector{<:Number}, m:: Int64; iDFTx=iDFTx, pl=true)
+function get_m_samples(interferogram:: Vector{<:Number}, m:: Int64; iDFTt=iDFTt, pl=true)
+    # discrete interferogram assumed to be evenly spaced, as the one outputted from read_CSV
     n=length(interferogram)
     # m random samples sampled from t
     sampleₘ        = sample(1:n, m, ordered=true, replace=false)
     interferogramₘ = interferogram[sampleₘ] 
-    iDFTₘ          = iDFTx(sampleₘ, n)
-
-    if pl
-        scatter(sampleₘ,  real.(interferogramₘ), lw =2, alpha = .5, label="Real part")
-        scatter!(sampleₘ,  imag.(interferogramₘ), label="Imaginary part")
-        display(plot!(title="m interferogram samples", xlabel="Optical path [cm]", ylabel="Volts [V]"))
-    end
-
-    return sampleₘ, interferogramₘ, iDFTₘ
-end
-
-function get_m_samples(t:: Vector{<:Number}, interferogram:: Vector{<:Number}, m:: Int64; iDFTx=iDFTx, pl=true)
-    n=length(interferogram)
-    # m random samples sampled from t
-    sampleₘ        = sample(t, m, ordered=true, replace=false)
-    interferogramₘ = interferogram[sampleₘ] 
-    iDFTₘ          = iDFTx(sampleₘ, n)
+    iDFTₘ          = iDFTt(sampleₘ, (1, n), n)
 
     if pl
         scatter(sampleₘ,  real.(interferogramₘ), lw =2, alpha = .5, label="Real part")
